@@ -19,14 +19,15 @@ To enable Google Docs integration, you must configure your Google Cloud project:
    Shared/Deployed: https://ais-pre-45gpiyzhyzd5bbgc6yuxcg-168071429108.asia-southeast1.run.app/auth/callback
 
 **How to use:**
-Upload: Drag and drop photos of your handwritten notes or paste a Google Doc link.
-Connect: If using Google Docs, click "Connect Google Docs" to authorize access. Set Environment Variables:
-         GOOGLE_CLIENT_ID: Your Google Client ID
-         GOOGLE_CLIENT_SECRET: Your Google Client Secret
-         APP_URL: https://ais-dev-45gpiyzhyzd5bbgc6yuxcg-168071429108.asia-southeast1.run.app (or the shared URL)
-Generate: Click "Generate Smart Notes". The AI will analyze your input, elaborate on emphasized points, and recreate diagrams.
-Review: Preview the structured output in the app.
-Export: Download your final document as a PDF or PPTX.
+
+1. Upload: Drag and drop photos of your handwritten notes or paste a Google Doc link.
+2. Connect: If using Google Docs, click "Connect Google Docs" to authorize access. Set Environment Variables:
+         - GOOGLE_CLIENT_ID: Your Google Client ID
+         - GOOGLE_CLIENT_SECRET: Your Google Client Secret
+         - APP_URL: https://ais-dev-45gpiyzhyzd5bbgc6yuxcg-168071429108.asia-southeast1.run.app (or the shared URL)
+3. Generate: Click "Generate Smart Notes". The AI will analyze your input, elaborate on emphasized points, and recreate diagrams.
+4. Review: Preview the structured output in the app.
+5. Export: Download your final document as a PDF or PPTX.
 
 ## Run Locally
 
