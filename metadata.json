@@ -1,0 +1,7 @@
+{
+  "name": "Smart Scribbler",
+  "description": "Transform handwritten notes and Google Docs into structured, professional PDFs and PPTs with AI-powered elaboration and diagram recreation.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
