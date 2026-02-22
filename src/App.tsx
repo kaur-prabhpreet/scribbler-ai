@@ -46,7 +46,15 @@ export default function App() {
   const [outputType, setOutputType] = useState<'pdf' | 'ppt'>('pdf');
   const [error, setError] = useState<string | null>(null);
   const [googleTokens, setGoogleTokens] = useState<any>(null);
+  const [showCredsModal, setShowCredsModal] = useState(false);
+  const [creds, setCreds] = useState({ clientId: '', clientSecret: '' });
 
+  useEffect(() => {
+    const savedCreds = localStorage.getItem('google_creds');
+    if (savedCreds) {
+      setCreds(JSON.parse(savedCreds));
+    }
+  }, []);
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.data?.type === 'GOOGLE_AUTH_SUCCESS') {
@@ -72,13 +80,28 @@ export default function App() {
   };
 
   const handleGoogleConnect = async () => {
+    if (!creds.clientId || !creds.clientSecret) {
+      setShowCredsModal(true);
+      return;
+    }
     try {
-      const res = await fetch('/api/auth/url');
+      const params = new URLSearchParams({
+        clientId: creds.clientId,
+        clientSecret: creds.clientSecret
+      });
+      const res = await fetch(`/api/auth/url?${params.toString()}`);
       const { url } = await res.json();
       window.open(url, 'google_auth', 'width=600,height=700');
     } catch (err) {
       setError('Failed to connect to Google');
     }
+  };
+
+  const saveCreds = (e: React.FormEvent) => {
+    e.preventDefault();
+    localStorage.setItem('google_creds', JSON.stringify(creds));
+    setShowCredsModal(false);
+    handleGoogleConnect();
   };
 
   const processNotes = async () => {
@@ -105,7 +128,12 @@ export default function App() {
         const res = await fetch('/api/google-doc/content', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ docId, tokens: googleTokens })
+          body: JSON.stringify({ 
+            docId, 
+            tokens: googleTokens,
+            clientId: creds.clientId,
+            clientSecret: creds.clientSecret
+          })
         });
         const { content } = await res.json();
         result = await analyzeNotes({ type: 'text', data: content });
@@ -446,6 +474,80 @@ export default function App() {
           </div>
         </div>
       </main>
+
+      {/* Credentials Modal */}
+      <AnimatePresence>
+        {showCredsModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowCredsModal(false)}
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden"
+            >
+              <div className="p-8 space-y-6">
+                <div className="space-y-2">
+                  <h3 className="text-2xl font-bold tracking-tight">Google Credentials</h3>
+                  <p className="text-sm text-black/40">Enter your Google Cloud Project credentials to enable Google Docs integration.</p>
+                </div>
+                
+                <form onSubmit={saveCreds} className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold uppercase tracking-wider text-black/40">Client ID</label>
+                    <input 
+                      type="text" 
+                      required
+                      placeholder="Enter Client ID"
+                      className="w-full px-4 py-3 rounded-xl border border-black/10 focus:outline-none focus:ring-2 focus:ring-black/5 transition-all text-sm"
+                      value={creds.clientId}
+                      onChange={(e) => setCreds(prev => ({ ...prev, clientId: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold uppercase tracking-wider text-black/40">Client Secret</label>
+                    <input 
+                      type="password" 
+                      required
+                      placeholder="Enter Client Secret"
+                      className="w-full px-4 py-3 rounded-xl border border-black/10 focus:outline-none focus:ring-2 focus:ring-black/5 transition-all text-sm"
+                      value={creds.clientSecret}
+                      onChange={(e) => setCreds(prev => ({ ...prev, clientSecret: e.target.value }))}
+                    />
+                  </div>
+                  <div className="pt-2 flex gap-3">
+                    <button 
+                      type="button"
+                      onClick={() => setShowCredsModal(false)}
+                      className="flex-1 py-3 rounded-xl border border-black/10 font-bold text-sm hover:bg-black/5 transition-all"
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      type="submit"
+                      className="flex-1 py-3 bg-black text-white rounded-xl font-bold text-sm hover:scale-[1.02] active:scale-[0.98] transition-all"
+                    >
+                      Save & Connect
+                    </button>
+                  </div>
+                </form>
+
+                <div className="p-4 bg-amber-50 rounded-xl border border-amber-100">
+                  <p className="text-[10px] text-amber-700 leading-relaxed">
+                    <strong>Note:</strong> These credentials are required to generate the OAuth URL. You can find them in your Google Cloud Console under APIs & Services &gt; Credentials.
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Footer */}
       <footer className="max-w-5xl mx-auto px-6 py-12 border-t border-black/5 text-center text-black/40 text-sm">

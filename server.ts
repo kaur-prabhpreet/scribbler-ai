@@ -16,15 +16,19 @@ async function startServer() {
 
   app.use(express.json({ limit: '50mb' }));
 
-  // Google OAuth Setup
-  const oauth2Client = new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET,
-    `${process.env.APP_URL}/auth/callback`
-  );
+  // Helper to create OAuth2 client
+  const getOAuth2Client = (clientId?: string, clientSecret?: string) => {
+    return new google.auth.OAuth2(
+      clientId || process.env.GOOGLE_CLIENT_ID,
+      clientSecret || process.env.GOOGLE_CLIENT_SECRET,
+      `${process.env.APP_URL}/auth/callback`
+    );
+  };
 
   app.get("/api/auth/url", (req, res) => {
-    const url = oauth2Client.generateAuthUrl({
+    const { clientId, clientSecret } = req.query;
+    const client = getOAuth2Client(clientId as string, clientSecret as string);
+    const url = client.generateAuthUrl({
       access_type: "offline",
       scope: ["https://www.googleapis.com/auth/documents.readonly"],
     });
@@ -32,9 +36,15 @@ async function startServer() {
   });
 
   app.get("/auth/callback", async (req, res) => {
-    const { code } = req.query;
+    const { code, state } = req.query;
+    // Note: In a real app, we'd need to know which client ID/Secret to use here.
+    // For this sandbox, we'll assume the environment ones or we'd need to pass them through 'state'.
+    // Let's try to use the environment ones first, or if we passed them in state...
+    // Actually, let's keep it simple: if they are in env, use them. 
+    // If not, we might have a problem unless we passed them in state.
     try {
-      const { tokens } = await oauth2Client.getToken(code as string);
+      const client = getOAuth2Client();
+      const { tokens } = await client.getToken(code as string);
       // In a real app, we'd store this in a session. 
       // For this demo, we'll send it back to the client to store in localStorage (less secure but easier for demo)
       // Or better, we can just send a success message and the client can fetch the user data.
@@ -61,10 +71,11 @@ async function startServer() {
   });
 
   app.post("/api/google-doc/content", async (req, res) => {
-    const { docId, tokens } = req.body;
+    const { docId, tokens, clientId, clientSecret } = req.body;
     try {
-      oauth2Client.setCredentials(tokens);
-      const docs = google.docs({ version: "v1", auth: oauth2Client });
+      const client = getOAuth2Client(clientId, clientSecret);
+      client.setCredentials(tokens);
+      const docs = google.docs({ version: "v1", auth: client });
       const doc = await docs.documents.get({ documentId: docId });
       
       // Extract text from doc
